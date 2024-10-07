@@ -8,5 +8,4 @@ jobs:
     runs-on: arc-runner-set
     steps:
     - run: echo "🎉 This job uses runner scale set runners!"
-    - run: mikube start --driver=docker
-    - run: minikube kubectl -- get pods -n arc-systems
+    - run: kubectl get nodes
