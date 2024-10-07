@@ -1,0 +1,39 @@
+name: Deploy Nginx to Minikube
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on push to 'main' branch
+
+jobs:
+  deploy:
+    runs-on: arc-runner-set  # This uses the locally hosted runner
+
+    steps:
+      # Checkout the code from the repo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up kubectl to access Minikube
+      - name: Set up kubectl
+        run: |
+          echo "Setting up kubectl for Minikube"
+          # Load Minikube's kubeconfig to communicate with the local cluster
+          export KUBEVIRT_KUBEVIRT_VIRT_LAB
+          mkdir -p ~/.kube
+          echo $(minikube -p minikube kubeconfig) > ~/.kube/config
+          
+          # Verify kubectl connection to Minikube
+          kubectl get nodes
+
+      # Deploy Nginx to Minikube
+      - name: Deploy Nginx
+        run: |
+          echo "Deploying Nginx to Minikube"
+          kubectl create deployment nginx --image=nginx --dry-run=client -o yaml | kubectl apply -f -
+          kubectl expose deployment nginx --port=80 --type=NodePort
+
+      # Output the Minikube URL where Nginx is exposed
+      - name: Get Nginx URL
+        run: |
+          minikube service nginx --url
