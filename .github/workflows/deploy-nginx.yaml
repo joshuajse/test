@@ -1,39 +1,29 @@
-name: Deploy Nginx to Minikube
+name: Deploy NGINX to Minikube
 
 on:
   push:
     branches:
-      - main  # Trigger deployment on push to 'main' branch
+      - main
 
 jobs:
   deploy:
-    runs-on: arc-runner-set  # This uses the locally hosted runner
+    runs-on: arc-runner-set
 
     steps:
-      # Checkout the code from the repo
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # Set up kubectl to access Minikube
-      - name: Set up kubectl
-        run: |
-          echo "Setting up kubectl for Minikube"
-          # Load Minikube's kubeconfig to communicate with the local cluster
-          export KUBEVIRT_KUBEVIRT_VIRT_LAB
-          mkdir -p ~/.kube
-          echo $(minikube -p minikube kubeconfig) > ~/.kube/config
-          
-          # Verify kubectl connection to Minikube
-          kubectl get nodes
+    - name: Set up kubectl
+      run: |
+        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x ./kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
 
-      # Deploy Nginx to Minikube
-      - name: Deploy Nginx
-        run: |
-          echo "Deploying Nginx to Minikube"
-          kubectl create deployment nginx --image=nginx --dry-run=client -o yaml | kubectl apply -f -
-          kubectl expose deployment nginx --port=80 --type=NodePort
+    - name: Set KUBECONFIG environment variable
+      run: echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
 
-      # Output the Minikube URL where Nginx is exposed
-      - name: Get Nginx URL
-        run: |
-          minikube service nginx --url
+    - name: Apply NGINX Deployment
+      run: kubectl apply -f nginx-deployment.yaml
+
+    - name: Verify NGINX Deployment
+      run: kubectl rollout status deployment/nginx-deployment
